@@ -12,7 +12,7 @@ Logo made with [DesignEvo](https://designevo.com)
 
 ## Installation
 
-In order to use DefArc in your Defold game add it to your [game.project](defold://open?path=/game.project) as a [Defold library dependency](https://defold.com/manuals/libraries/).
+In order to use DefArc in your Defold game add it to your [game.project](defold://open?path=/game.project) as a [Defold library dependency](https://defold.com/manuals/libraries/). Don't forget to fetch the libraries.
 
 Once added, you must require the main Lua module in scripts via
 
@@ -20,13 +20,14 @@ Once added, you must require the main Lua module in scripts via
 local defarc = require("defarc.defarc")
 ```
 
-Then you need to add dialogs exported from Arcweave in a [JSON format](https://arcweave.com/docs/1.0/export) to your project. To add it, you need to provide a path in **Custom Resource** field of your *game.project* in Defold. For example, if you have your file in the assets folder in the project directory, type: assets or specifically: assets/dialogue.json. You can find more informations about custom resources in official Defold's [documentation here](https://defold.com/manuals/resource/).
+Then you need to add dialogs exported from Arcweave in a [JSON format](https://arcweave.com/docs/1.0/export) to your project. To add it, you need to provide a path in **Custom Resource** field of your *game.project* in Defold. For example, if you have your file in the assets folder in the project directory, type: assets or specifically: assets/dialogue.json. You can find more informations about custom resources in official [Defold documentation on Custom Resources here](https://defold.com/manuals/resource/).
 
 ## What you can do?
 
 With DefArc you can easily:
 
 - add linear or non-linear, interactive dialogues to your games
+- build visual novels, interactive fiction or any kind of games with narrative
 - utilize powerful Arcweave branching with code chunks
 - load and save variables changing the flow of conversations
 - load json data exported from Arcweave conversation making tool
@@ -35,6 +36,71 @@ With DefArc you can easily:
 - modify data by adding actors, colors and custom text effects
 - add images, portraits, locations or emoticons from Arcweave assets
 
+
+## Defold Example
+
+Though DefArc offers over hundred of functions, but for most games purposes, you would practically narrow the usage to just few. At the end of this Readme you can find a whole API documentation. If you want only a quick overview, take a look at example lines below:
+
+1) Load the project from JSON resource:
+
+```
+	defarc.load("/dialogs/test_board.json") 		-- loading Arcweave exported JSON from custom resources
+```
+
+2) Select an element to start working with it, e.g. displaying the text and options.
+
+```
+	defarc.select_element("Example welcome") 		-- selecting element by its title from Arcweave element or by element id
+```
+
+4) Get text and options_table:
+```
+	local text = defarc.get_text()					-- get parsed element's content
+	local options = defarc.get_options_table()		-- get parsed options/labels in a Lua table
+```
+
+5) Put it in GUI, for example:
+
+```
+	function show_current_text_and_options()
+		local text = defarc.get_text()
+		local options = defarc.get_options_table()
+
+		gui.set_text(gui.get_node("NPC"), text) 	-- set text
+
+		for i=1,3 do                            	-- set 3 corresponding options
+			local node = gui.get_node("Option_"..i)
+			local option = options[i] and options[i].label or ""
+			gui.set_text(node, option)
+		end
+	end
+```
+
+6) Add input handling and proceed to next element after choosing an option, for example:
+
+```
+	function on_input(self, action_id, action)
+		for i = 1,3 do
+			local current_option_node = gui.get_node("Option_"..i)
+
+			if gui.pick_node(current_option_node, action.x, action.y) then	-- handle clicking on option nodes
+				if action.pressed then
+					gui.set_scale(current_option_node, vmath.vector4(0.9))	-- scale clicked options a little
+				elseif action.released then
+					gui.set_scale(current_option_node, vmath.vector4(1))	-- scale it back when released
+					defarc.select_element(options[i].target_id)				-- select next element
+					show_current_text_and_options()							-- display next text and options
+				end
+				return true
+			end
+		end
+	end
+```
+
+The repository contains 2 examples, that both runs a simple conversation, where you can choose each of the options. For simple application - when reaching an end - it starts again. For Arcweave example - there is a secret, sucessful ending if you find a way to get pass a guardian.
+
+![Example app](img/screenshot_example_app_arcweave.png)
+
 ## Arcweave
 
 Arcweave allows to create complex diagrams that can be used to build linear dialogues, non-linear branching conversations with variables or quest or story flow design.
@@ -42,39 +108,37 @@ Arcweave offers a lot of options, all of them are available in free plan. Check 
 
 ![Example Arcweave](img/screenshot_example_arcweave.png)
 
+## ArcScripts
 
-## Defold Example
+Arcweave offers some logic functionality through custom syntax code - ArcScripts. DefArc supports gradually more and more of this functionality, though code parsing is hard for a developer like me, so please be patient for the updates and bear in mind that not everything might work! If this is the case, don't hesitate to report it to me - I will be updating it :)
 
-Though DefArc offers over hundred of functions, for most games purposes, one would practically narrow the usage to just few. A simple example for handling branching dialogue in Defold is used in example project. For it to work you need to:
+Currently supporting:
+- single statement conditions, e.g. if variable_name
+- negatation operator, e.g. if !variable_name
+- assignments in the text and options, e.g. variable_name = true
 
-1) Load the project from JSON resource:
-
+DefArc is automatically parsing the element's content and whenever it reaches any ArcScript code, it tries to parse it and if there is any operation on the global variables - it saves and uses the internal global variables table, exposed to you as `defarc.global_variables` Lua table.
+You can change or extend parsing behavior, by overwriting the currently used behavior-defining function, also exposed as:
 ```
-defarc.load("/dialogs/test_board.json") -- loading Arcweave exported JSON from custom resources
+defarc.arcscript_code_parser(splitted, start_at)
 ```
+taking as parameters a Lua table with splitted by "<" and ">" elements and additional parameter start_at, identifying the place in such table, where a `code` tag appeared, meaning a beginning of ArcScript chunk.
 
-2) Select an element to start working with it, e.g. displaying the text and options.
+## HTML tags parsing
 
-```
-defarc.select_element("Example welcome") -- selecting element by its title from Arcweave element
-```
+DefArc also offers a custom HTML tags parsing. The default parser for most of the tags basically just removes them from the contents or replaces them with quotation marks or adds @ to notify a meant-to-be link.
+If you want to modify the behavior, because for example you want to parse the tags to be usable with Defold RichText or Printer modules - it is located in "defarc.parser" as default_tag_parser and is a Lua table with strings to match from the tags as keys (trimmed from `<` and `>`, so e.g. "a href" and "/a") and functions to return a proper string instead of such whole tag. This might be to complicated and not so efficient, but for now it is a perfect solution to parse all HTML tags that could occur in Arcweave (or at least that occured in Arcweave example and my projects).
 
-4) Get text and options_table and put it in GUI:
+I plan to add tag parsers for RichText and Defold Printer, but for now, if you need it now, you can customize the default, like this:
 
-```
-local text = defarc.get_text()
-	local options = defarc.get_options_table()
+For RichText Example could be to overwrite default <strong> tag parameter, where e.g. <b> is available:
+richtext_tag_parser["/strong"] = function() return "</b></color>" end	-- for closing tag
+tichtext_tag_parser["strong"] = function() return "<color=red><b>" end	-- for opening tag
 
-	gui.set_text(gui.get_node("NPC"), text) -- set text
+For Defold Printer a different styling syntax is used, so an example like this could be used:
+dprinter_tag_parser["/strong"] = function() return "{/}" end	-			-- for closing tag
+dprinter_tag_parser["strong"] = function() return "{strong_style}" end	-- for opening tag (if strong_style is known to Defold Printer)
 
-	for i=1,3 do                            -- set 3 corresponding options
-		gui.set_text(gui.get_node("Option_"..i), options[i] and options[i].label or "")
-	end
-```
-
-The given example runs a simple conversation, where you can choose each of the options and when reaching an end - it starts again.
-
-![Example app](img/screenshot_example_app.png)
 
 ## Tests
 
@@ -85,13 +149,19 @@ local defarc_test = require "defarc.defarc_test"
 defarc_test.run()
 ```
 
-Happy DefArcing!
+## Contributions and maintenance
+
+I wrote this project solo as a basic parser for Arcweave projects, but it grew up and and will grow up for sure, as I am using it actively for game development with Defold. It is a Lua module, that beside of loading using a Defold json parser, could be possibly used in any Lua based project. If you would like to help me or contribute, don't hesitate - it's open source and I'm eager for this!
+
+## License
+
+DefArc is released under MIT license.
 
 ___
 
 # DefArc API
 
-## Project
+## Project related:
 
 ### .load(resource)
 	Loads a Custom Resource with a JSON dialogue data. This function saves this data inside DefArc module for convenience and optimization, so there is no need to provide dialogue (aka conversation) data for every function, that takes it as a parameter. This makes this function to be called first a necessity.

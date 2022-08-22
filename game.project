@@ -15,6 +15,6 @@ input_method = HiddenInputField
 title = DefArc
 custom_resources = dialogs, example_arcweave_template
 developer = Pawel Jarosz
-version = 0.1
+version = 0.2
 publisher = Pawel Jarosz
 
