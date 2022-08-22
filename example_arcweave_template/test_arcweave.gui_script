@@ -16,10 +16,9 @@ end
 
 function init(self)
 	msg.post(".", "acquire_input_focus")
-	defarc_test.run()								-- unit and functional testing, not needed for project
 
-	defarc.load("/dialogs/test_board.json")			-- loading Arcweave exported JSON from custom resources
-	defarc.select_element("Example welcome")		-- selecting element by its title from Arcweave element
+	defarc.load("/example_arcweave_template/import/project_settings.json")			-- loading Arcweave exported JSON from custom resources
+	defarc.select_element(defarc.get_starting_element())-- selecting starting element
 
 	show_current_text_and_options()					-- display text and options from selected element
 end
@@ -34,10 +33,15 @@ function on_input(self, action_id, action)
 			elseif action.released then
 				gui.set_scale(current_option_node, vmath.vector4(1))	-- scale it back when released
 
-				defarc.select_element(options[i].target_id)				-- select next element
+				local jumper = defarc.get_jumper(options[i].target_id)
+				if jumper then			-- if the target id is a jumper
+					defarc.select_element(defarc.get_jumper_element_id(jumper))
+				else
+					defarc.select_element(options[i].target_id)			-- select next element
+				end
 
 				if defarc.get_element_title() == "Exit" then			-- if one of elements have title "Exit"
-					defarc.select_element("Example welcome")			-- we will just start over (or we can quit the conversation here)
+					defarc.select_element(defarc.get_starting_element())			-- we will just start over (or we can quit the conversation here)
 				end
 
 				show_current_text_and_options()							-- display next text and options
