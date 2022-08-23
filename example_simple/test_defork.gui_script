@@ -10,7 +10,9 @@ function show_current_text_and_options()			-- helper function to get and set cur
 	gui.set_text(gui.get_node("NPC"), text)			-- set text
 
 	for i=1,3 do									-- set 3 corresponding options - can be improved with a dynamic list
-		gui.set_text(gui.get_node("Option_"..i), options[i] and options[i].label or "")
+		local option_node = gui.get_node("Option_"..i)
+		local option_text = options[i] and options[i].label or ""
+		gui.set_text(option_node, option_text)
 	end
 end
 

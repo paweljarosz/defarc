@@ -225,14 +225,12 @@ end
 
 function M.get_component_attributes(component)
 	component = M.get_component(component)
-	assert(component and component.attributes, "DefArc: No attributes for given component")
-	return component and component.attributes
+	return component and component.attributes or false
 end
 
 function M.get_component_assets(component)
 	component = M.get_component(component)
-	assert(component and component.assets, "DefArc: No assets for given component")
-	return component and component.assets
+	return component and component.assets or false
 end
 
 ----------- ATTRIBUTES -------------
@@ -601,15 +599,19 @@ end
 
 ----------- STRING HELPER FUNCTIONS -------------
 
-function M.split(inputstr, sep)
-	if sep == nil then
-		sep = "%s"
-	end
+function M.split(inputstr, sep, alt_sep)
 	local t = {}
 	local i = 1
 	for str in string_gmatch(inputstr, "([^"..sep.."]+)") do
-		t[i] = str
-		i = i + 1
+		if alt_sep then
+			for alt_str in string_gmatch(str, "([^"..alt_sep.."]+)") do
+				t[i] = alt_str
+				i = i + 1
+			end
+		else
+			t[i] = str
+			i = i + 1
+		end
 	end
 	return t
 end
@@ -693,7 +695,7 @@ end
 
 local function divide_code_condition_into_elements(condition)
 	-- divide code condition into separate elements, e.g. variable == 1, will be splitted into table {2, "==", 1} (variable is parsed and its value is loaded (2)
-	local elements = M.split(condition)
+	local elements = M.split(condition, "%s")
 	condition = ""
 	local length = #elements
 
@@ -895,6 +897,11 @@ function M.get_element_outputs(element)
 	return element and element.outputs
 end
 
+function M.get_element_assets(element)
+	element = M.get_element(element)
+	return element and element.assets
+end
+
 function M.get_element_components(element)
 	element = M.get_element(element)
 	return element and element.components
@@ -1084,7 +1091,7 @@ end
 
 function M.get_text(element)
 	local content = M.get_element(element).content
-	local result = parser.parse_element_content(content, M.arcscript_code_parser)
+	local result = parser.parse_element_content(content, M)
 	return result
 end
 
@@ -1121,13 +1128,16 @@ function M.get_options_table(element)
 			target_id = M.get_connection_target_id(output_connection)
 		end
 		local label_unparsed = M.get_connection_label(output_connection)
-		local label_parsed = parser.parse_element_content(label_unparsed, M.arcscript_code_parser)
+		local label_parsed = parser.parse_element_content(label_unparsed, M)
 		options[i] = { target_id = target_id,
 			label = label_parsed,
 			theme = M.get_connection_theme(output_connection),
 			target_type = M.get_connection_target_type(output_connection)}
 	end
 	return options
+end
+
+M.displaying_image_component_cb = function(image_name)
 end
 
 return M

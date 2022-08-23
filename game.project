@@ -1,5 +1,5 @@
 [bootstrap]
-main_collection = /example_arcweave_template/main_arcweave.collectionc
+main_collection = /example_arcweave/main_arcweave.collectionc
 
 [script]
 shared_state = 1
@@ -13,8 +13,8 @@ input_method = HiddenInputField
 
 [project]
 title = DefArc
-custom_resources = dialogs, example_arcweave_template
+custom_resources = dialogs, example_arcweave
 developer = Pawel Jarosz
-version = 0.2
+version = 0.3
 publisher = Pawel Jarosz
 

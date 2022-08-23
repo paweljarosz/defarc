@@ -1,7 +1,16 @@
 local defarc = require "defarc.defarc"
-local defarc_test = require "defarc.defarc_test"	-- unit and functional testing, not needed for project
 
 local options = {}									-- store current options table locally for convenience in input handling
+
+function display_component_image()
+	local assets = defarc.get_element_assets()
+	if assets then									-- only works with single asset per element
+		local asset_id = assets and assets.cover and assets.cover.id
+		local image_asset = defarc.get_asset_by_id(assets.cover and assets.cover.id)
+		local splitted = defarc.split(image_asset.name, ".")		-- you only need name in Defold, not file extension
+		gui.play_flipbook(gui.get_node("component_image"), splitted[1])
+	end
+end
 
 function show_current_text_and_options()			-- helper function to get and set current dialogue text and options
 	local text = defarc.get_text()
@@ -10,17 +19,25 @@ function show_current_text_and_options()			-- helper function to get and set cur
 	gui.set_text(gui.get_node("NPC"), text)			-- set text
 
 	for i=1,3 do									-- set 3 corresponding options - can be improved with a dynamic list
-		gui.set_text(gui.get_node("Option_"..i), options[i] and options[i].label or "")
+		local option_node = gui.get_node("Option_"..i)
+		local option_text = options[i] and options[i].label or ""
+		gui.set_text(option_node, option_text)
 	end
+
+	display_component_image()
 end
 
 function init(self)
 	msg.post(".", "acquire_input_focus")
 
-	defarc.load("/example_arcweave_template/import/project_settings.json")			-- loading Arcweave exported JSON from custom resources
-	defarc.select_element(defarc.get_starting_element())-- selecting starting element
+	defarc.load("/example_arcweave/import/project_settings.json")		-- loading Arcweave exported JSON from custom resources
+	defarc.select_element(defarc.get_starting_element())				-- select starting element
+	
+	defarc.displaying_image_component_cb = function(image_name)			-- setup a callback function that will display component's image
+		gui.play_flipbook(gui.get_node("component_image"), image_name)
+	end
 
-	show_current_text_and_options()					-- display text and options from selected element
+	show_current_text_and_options()										-- display text and options from selected element
 end
 
 function on_input(self, action_id, action)
@@ -34,14 +51,14 @@ function on_input(self, action_id, action)
 				gui.set_scale(current_option_node, vmath.vector4(1))	-- scale it back when released
 
 				local jumper = defarc.get_jumper(options[i].target_id)
-				if jumper then			-- if the target id is a jumper
+				if jumper then											-- if the target id is a jumper
 					defarc.select_element(defarc.get_jumper_element_id(jumper))
 				else
 					defarc.select_element(options[i].target_id)			-- select next element
 				end
 
 				if defarc.get_element_title() == "Exit" then			-- if one of elements have title "Exit"
-					defarc.select_element(defarc.get_starting_element())			-- we will just start over (or we can quit the conversation here)
+					defarc.select_element(defarc.get_starting_element())-- we will just start over (or we can quit the conversation here)
 				end
 
 				show_current_text_and_options()							-- display next text and options
