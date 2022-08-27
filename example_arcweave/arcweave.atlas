@@ -1,33 +1,33 @@
 images {
-  image: "/example_arcweave/import/assets/corridor.jpg"
+  image: "/dialogs/arcweave_example/assets/corridor.jpg"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/example_arcweave/import/assets/courtyard.jpg"
+  image: "/dialogs/arcweave_example/assets/courtyard.jpg"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/example_arcweave/import/assets/crusader.jpg"
+  image: "/dialogs/arcweave_example/assets/crusader.jpg"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/example_arcweave/import/assets/monsignor.jpg"
+  image: "/dialogs/arcweave_example/assets/monsignor.jpg"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/example_arcweave/import/assets/painter room.jpg"
+  image: "/dialogs/arcweave_example/assets/painter room.jpg"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/example_arcweave/import/assets/the door.jpg"
+  image: "/dialogs/arcweave_example/assets/the door.jpg"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/example_arcweave/import/assets/the end.jpg"
+  image: "/dialogs/arcweave_example/assets/the end.jpg"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/example_arcweave/import/cover/cover.jpg"
+  image: "/dialogs/arcweave_example/cover/cover.jpg"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 margin: 0

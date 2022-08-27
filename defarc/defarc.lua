@@ -9,79 +9,103 @@ local M = {}
 -------------------------------------------  [ DefArc ] -----------------------------------------------
 
 --localise globals
-local require, assert, sys, json, pairs, type = require, assert, sys, json, pairs, type
-local tonumber, tostring, string, table, load = tonumber, tostring, string, table, load
+local require, sys, json, pairs, type, load = require, sys, json, pairs, type, load
+local tonumber, tostring, string, table = tonumber, tostring, string, table
+local setmetatable, print = setmetatable, print
 local string_gmatch, string_find, string_len, string_sub = string.gmatch, string.find, string.len, string.sub
 local table_insert = table.insert
 
 local parser = require "defarc.parser"
 
-M.dialog_data = {}
+M.verbose = false
+M.dialogue_data = {}
 local VARIABLE_SAVED = "variable_saved"
 
-function M.load(resource)
-	assert(resource, "DefArc: Error: No resource given")
-	local data = sys.load_resource(resource)
-	M.dialog_data = json.decode(data)
-	if not M.dialog_data then
-		print("DefArc:","Error: Could not load data")
+local function verbose_print(text, arg)
+	if M.verbose then
+		print("DefArc: "..text, arg)
 	end
-	return M.dialog_data
+end
+
+function M.load(resource)
+	if not resource then
+		local data = sys.load_resource(resource)
+		M.dialogue_data = json.decode(data)
+		if not M.dialogue_data then
+			verbose_print("Could not load data from resource: ", resource)
+			return nil
+		end
+		return M.dialogue_data
+	end
+	verbose_print("No resource given.")
+	return false
 end
 
 function M.create(resource)
 	local instance = {}
-	instance.dialog_data = M.load(resource)
+	instance.dialogue_data = M.load(resource)
 	return setmetatable(instance, { __index = M })
 end
 
 function M.get_project_name()
-	return M.dialog_data.name
+	return M.dialogue_data and M.dialogue_data.name
 end
 
 function M.get_project_cover()
-	return M.dialog_data.cover
+	return M.dialogue_data and M.dialogue_data.cover
 end
 
 ----------- BOARDS -------------
 
 function M.get_boards()
-	assert(M.dialog_data.boards, "DefArc: No boards in the project")
-	return M.dialog_data.boards
+	local boards = M.dialogue_data and M.dialogue_data.boards
+	if not boards then
+		verbose_print("No boards in the project")
+	end
+	return boards
 end
 
 function M.get_boards_names()
-	local names = {}
-	for id,board in pairs(M.get_boards()) do
-		names[id] = board.name
+	local names = nil
+	local boards = M.get_boards()
+	if boards then
+		names = {}
+		for id,board in pairs(boards) do
+			names[id] = board.name
+		end
 	end
 	return names
 end
 
 function M.get_board_by_id(board_id)
-	return M.get_boards()[board_id]
+	local boards = M.get_boards()
+	return boards and boards[board_id]
 end
 
 function M.get_board_by_name(name)
-	for id,board in pairs(M.dialog_data.boards) do
-		if board.name == name then
-			return board
+	local boards = M.get_boards()
+	if boards then
+		for _,board in pairs(boards) do
+			if board.name == name then
+				return board
+			end
 		end
 	end
+	verbose_print("No board with given name: ", name)
 	return nil
 end
 
 function M.get_board(board)
 	if board then
 		if type(board) == "string" then
-			local board_by_name = M.get_board_by_name(board)
-			if board_by_name then
-				return board_by_name
+			local board_by_id = M.get_board_by_id(board)
+			if board_by_id then
+				return board_by_id
 			else
-				return M.get_board_by_id(board)
+				return M.get_board_by_name(board) or M.board_selected
 			end
 		else
-			return board
+			return board or M.board_selected
 		end
 	else
 		return M.board_selected
@@ -102,84 +126,118 @@ end
 
 function M.get_board_name(board)
 	board = M.get_board(board)
-	assert(board, "DefArc: No such board")
-	return board.name
+	return board and board.name
 end
 
 ----------- BOARD CONTENTS -------------
 
-function M.get_notes(board)
-	local notes = {}
+function M.get_board_notes(board)
 	board = M.get_board(board)
-	assert(M.dialog_data.notes, "DefArc: No notes in the board")
-	for id,note in pairs(M.dialog_data.notes) do
-		notes[id] = note
+	local data = M.dialogue_data.notes
+	if data then
+		local notes = {}
+		for id, note in pairs(data) do
+			notes[id] = note
+		end
+		return notes
+	else
+		verbose_print("No notes in the board")
+		return nil
 	end
-	return notes
 end
 
 function M.get_board_jumpers(board)
 	local jumpers = {}
 	board = M.get_board(board)
-	assert(M.dialog_data.jumpers, "DefArc: No jumpers in the board")
-	for id,jumper in pairs(M.dialog_data.jumpers) do
-		jumpers[id] = jumper.elementId
+	local data = M.dialogue_data.jumpers
+	if data then
+		for id,jumper in pairs(data) do
+			jumpers[id] = jumper.elementId
+		end
+		return jumpers
+	else
+		verbose_print("No jumpers in the board")
+		return nil
 	end
-	return jumpers
 end
 
 function M.get_board_branches(board)
 	local branches = {}
 	board = M.get_board(board)
-	assert(M.dialog_data.branches, "DefArc: No branches in the board")
-	for id,branch in pairs(M.dialog_data.branches) do
-		branches[id] = branch
+	local data = M.dialogue_data.branches
+	if data then
+		for id,branch in pairs(data) do
+			branches[id] = branch
+		end
+		return branches
+	else
+		verbose_print("No branches in the board")
+		return nil
 	end
-	return branches
 end
 
 function M.get_board_elements(board)
 	local elements = {}
 	board = M.get_board(board)
-	assert(M.dialog_data.elements, "DefArc: No elements in the board")
-	for id,element in pairs(M.dialog_data.elements) do
-		elements[id] = element
+	local data = M.dialogue_data.elements
+	if data then
+		for id,element in pairs(data) do
+			elements[id] = element
+		end
+		return elements
+	else
+		verbose_print("No elements in the board")
+		return nil
 	end
-	return elements
 end
 
 function M.get_board_connections(board)
 	local connections = {}
 	board = M.get_board(board)
-	assert(M.dialog_data.connections, "DefArc: No connections in the board")
-	for id,connection in pairs(M.dialog_data.connections) do
-		connections[id] = connection
+	local data = M.dialogue_data.connections
+	if data then
+		for id,connection in pairs(data) do
+			connections[id] = connection
+		end
+		return connections
+	else
+		verbose_print("No connections in the board")
+		return nil
 	end
-	return connections
 end
 
 ----------- COMPONENTS -------------
 
 function M.get_components()
-	assert(M.dialog_data.components, "DefArc: No components in the project")
-	return M.dialog_data.components
-end
-
-function M.get_components_names()
-	assert(M.dialog_data.components, "DefArc: No components in the project")
-	local components = {}
-	for id,component in pairs(M.get_components()) do
-		components[id] = component.name
+	local components = M.dialogue_data and M.dialogue_data.components
+	if not components then
+		verbose_print("No components in the project")
 	end
 	return components
 end
 
+function M.get_components_names()
+	local data = M.dialogue_data.components
+	if data then
+		local components = {}
+		for id,component in pairs(data) do
+			components[id] = component.name
+		end
+		return components
+	else
+		verbose_print("No components in the project")
+		return nil
+	end
+end
+
 function M.get_component_by_id(id)
-	return M.get_components()[id]
+	local components = M.get_components()
+	return components and components[id]
 end
 
 function M.get_component_by_name(name)
-	for id,component in pairs(M.dialog_data.components) do
+	local data = M.dialogue_data.components
+	for id,component in pairs(data) do
 		if component.name == name then
 			return component
 		end
@@ -190,11 +248,11 @@ end
 function M.get_component(component)
 	if component then
 		if type(component) == "string" then
-			local component_by_name = M.get_component_by_name(component)
-			if component_by_name then
-				return component_by_name
+			local component_by_id = M.get_component_by_id(component)
+			if component_by_id then
+				return component_by_id
 			else
-				return M.get_component_by_id(component)
+				return M.get_component_by_name(component)
 			end
 		else
 			return component
@@ -225,35 +283,40 @@ end
 
 function M.get_component_attributes(component)
 	component = M.get_component(component)
-	return component and component.attributes or false
+	return component and component.attributes
 end
 
 function M.get_component_assets(component)
 	component = M.get_component(component)
-	return component and component.assets or false
+	return component and component.assets
 end
 
 ----------- ATTRIBUTES -------------
 
 function M.get_attributes()
-	assert(M.dialog_data.attributes, "DefArc: No attributes in the project")
-	return M.dialog_data.attributes
+	local attributes = M.dialogue_data and M.dialogue_data.attributes
+	if not attributes then
+		verbose_print("No attributes in the project")
+	end
+	return attributes
 end
 
 function M.get_attributes_names()
 	local attributes = {}
-	for id,attribute in pairs(M.get_attributes()) do
+	local data = M.get_attributes()
+	for id, attribute in pairs(data) do
 		attributes[id] = attribute.name
 	end
 	return attributes
 end
 
 function M.get_attribute_by_id(id)
-	return M.get_attributes()[id]
+	local attr = M.get_attributes()
+	return attr and attr[id]
 end
 
 function M.get_attribute_by_name(name)
-	for id,attribute in pairs(M.dialog_data.attributes) do
+	for id,attribute in pairs(M.dialogue_data.attributes) do
 		if attribute.name == name then
 			return attribute
 		end
@@ -293,42 +356,52 @@ end
 ----------- ATTRIBUTES CONTENTS -------------
 
 function M.get_attribute_name(attribute)
-	return M.get_attribute(attribute).name
+	local attribute = M.get_attribute(attribute)
+	return attribute and attribute.name
 end
 
 function M.get_attribute_value(attribute)
-	return M.get_attribute(attribute).value
+	local attribute = M.get_attribute(attribute)
+	return attribute and attribute.value
 end
 
 function M.get_attribute_data(attribute)
-	return M.get_attribute(attribute).value.data
+	local attribute = M.get_attribute(attribute)
+	return attribute and attribute.value and attribute.value.data
 end
 
 function M.get_attribute_type(attribute)
-	return M.get_attribute(attribute).value.type
+	local attribute = M.get_attribute(attribute)
+	return attribute and attribute.value and attribute.value.type
 end
 
 ----------- GLOBAL ASSETS -------------
 
 function M.get_assets()
-	assert(M.dialog_data.assets, "DefArc: No assets in the project")
-	return M.dialog_data.assets
+	local assets = M.dialogue_data and M.dialogue_data.assets
+	if not assets then
+		verbose_print("No assets in the project")
+	end
+	return assets
 end
 
 function M.get_assets_names()
 	local assets = {}
-	for id,asset in pairs(M.get_assets()) do
+	local data = M.get_assets()
+	for id, asset in pairs(data) do
 		assets[id] = asset.name
 	end
 	return assets
 end
 
 function M.get_asset_by_id(id)
-	return M.get_assets()[id]
+	local asset = M.get_assets()
+	return asset and asset[id]
 end
 
 function M.get_asset_by_name(name)
-	for id,asset in pairs(M.dialog_data.assets) do
+	local data = M.dialogue_data.assets
+	for _, asset in pairs(data) do
 		if asset.name == name then
 			return asset
 		end
@@ -339,11 +412,11 @@ end
 function M.get_asset(asset)
 	if asset then
 		if type(asset) == "string" then
-			local asset_by_name = M.get_asset_by_name(asset)
-			if asset_by_name then
-				return asset_by_name
+			local asset_by_id = M.get_asset_by_id(asset)
+			if asset_by_id then
+				return asset_by_id
 			else
-				return M.get_asset_by_id(asset)
+				return M.get_asset_by_name(asset)
 			end
 		else
 			return asset
@@ -366,15 +439,18 @@ function M.select_asset(asset)
 end
 
 function M.get_asset_name(asset)
-	return M.get_asset(asset).name
+	local asset = M.get_asset(asset)
+	return asset and asset.name
 end
 
 function M.get_asset_type(asset)
-	return M.get_asset(asset).type
+	local asset = M.get_asset(asset)
+	return asset and asset.type
 end
 
 function M.get_asset_children(asset)
-	return M.get_asset(asset).children
+	local asset = M.get_asset(asset)
+	return asset and asset.children
 end
 
 ----------- GLOBAL VARIABLES -------------
@@ -382,24 +458,29 @@ end
 M.global_variables = {}
 
 function M.get_variables()
-	assert(M.dialog_data.variables, "DefArc: No variables in the project")
-	return M.dialog_data.variables
+	local variables = M.dialogue_data and M.dialogue_data.variables
+	if not variables then
+		verbose_print("No variables in the project")
+	end
+	return variables
 end
 
 function M.get_variables_names()
 	local variables = {}
-	for id,variable in pairs(M.get_variables()) do
+	local data = M.get_variables()
+	for id,variable in pairs(data) do
 		variables[id] = variable.name
 	end
 	return variables
 end
 
 function M.get_variable_by_id(id)
-	return M.get_variables()[id]
+	local var = M.get_variables()
+	return var and var[id]
 end
 
 function M.get_variable_by_name(name)
-	for id,variable in pairs(M.dialog_data.variables) do
+	for id,variable in pairs(M.dialogue_data.variables) do
 		if variable.name == name then
 			return variable
 		end
@@ -410,11 +491,11 @@ end
 function M.get_variable(variable)
 	if variable then
 		if type(variable) == "string" then
-			local variable_by_name = M.get_variable_by_name(variable)
-			if variable_by_name then
-				return variable_by_name
+			local variable_by_id = M.get_variable_by_id(variable)
+			if variable_by_id then
+				return variable_by_id
 			else
-				return M.get_variable_by_id(variable)
+				return M.get_variable_by_name(variable)
 			end
 		else
 			return variable
@@ -437,83 +518,120 @@ function M.select_variable(variable)
 end
 
 function M.get_variable_name(variable)
-	return M.get_variable(variable).name
+	local variable = M.get_variable(variable)
+	return variable and variable.name
 end
 
 function M.get_variable_type(variable)
-	return M.get_variable(variable).type
+	local variable = M.get_variable(variable)
+	return variable and variable.type
 end
 
 function M.get_variable_value(variable)
-	return M.get_variable(variable).value
+	local variable = M.get_variable(variable)
+	return variable and variable.value
 end
 
 function M.save_variable(variable_name, new_value)
 	local variable_table = M.get_variable(variable_name)
 	if variable_table then
-		if variable_table.type == "boolean" then
+		local variable_table_name = variable_table.name
+		local variable_table_value = variable_table.value
+		local variable_table_type = variable_table.type
+		local type_new_value = type(new_value)
+		if variable_table_type == "boolean" then
 			if new_value then
-				if type(new_value) == "string" then
-					M.global_variables[variable_table.name] = (new_value == "true")
-				elseif type(new_value) == "number" then
-					M.global_variables[variable_table.name] = (new_value == 1)
+				if type_new_value == "string" then
+					M.global_variables[variable_table_name] = (new_value == "true")
+				elseif type_new_value == "number" then
+					M.global_variables[variable_table_name] = (new_value == 1)
+				elseif type_new_value == "boolean" then
+					M.global_variables[variable_table_name] = new_value
 				else
-					M.global_variables[variable_table.name] = new_value
+					verbose_print("Error assigning unsupported type value to a boolean variable.")
+					return false
 				end
 			else
-				M.global_variables[variable_table.name] = (variable_table.value == "true")
+				M.global_variables[variable_table_name] = (variable_table_value == "true")
 			end
-		elseif variable_table.type == "string" then
+		elseif variable_table_type == "string" then
 			if new_value then
-				if type(new_value) == "boolean" then
-					M.global_variables[variable_table.name] = new_value and "true" or "false"
+				if type_new_value == "boolean" then
+					M.global_variables[variable_table_name] = new_value and "true" or "false"
+				elseif type_new_value == "number" then
+					M.global_variables[variable_table_name] = tostring(new_value)
+				elseif type_new_value == "string" then
+					M.global_variables[variable_table_name] = new_value
 				else
-					M.global_variables[variable_table.name] = tostring(new_value)
+					verbose_print("Error assigning unsupported type value to a string variable.")
+					return false
 				end
 			else
-				M.global_variables[variable_table.name] = variable_table.value
+				M.global_variables[variable_table_name] = tostring(variable_table_value)
+			end
+		elseif (variable_table_type == "integer") or (variable_table_type == "float") then
+			if new_value then
+				if type_new_value == "boolean" then
+					M.global_variables[variable_table_name] = (new_value == 1)
+				elseif type_new_value == "number" then
+					M.global_variables[variable_table_name] = new_value
+				elseif type_new_value == "string" then
+					local tonumber_string = tonumber(new_value)
+					if tonumber_string then
+						M.global_variables[variable_table_name] = tonumber_string
+					else
+						verbose_print("Error converting string type value to a number variable.")
+						return false
+					end
+				else
+					verbose_print("Error assigning unsupported type value to a number variable.")
+					return false
+				end
+			else
+				M.global_variables[variable_table_name] = tonumber(variable_table_value)
 			end
 		else
-			if new_value then
-				if type(new_value) == "boolean" then
-					M.global_variables[variable_table.name] = (new_value == 1)
-				else
-					M.global_variables[variable_table.name] = tonumber(new_value)
-				end
-			else
-				M.global_variables[variable_table.name] = tonumber(variable_table.value)
-			end
+			verbose_print("New, unsupported ArcWeave variable type. Please, report it.")
+			return false
 		end
 		return true
 	end
+	verbose_print("Error saving value. No variables table in the project.")
 	return false
 end
 
 function M.load_variable(variable_name)
-	return M.global_variables[variable_name]
+	local vars = M.global_variables
+	return vars and vars[variable_name]
 end
 
 ----------- JUMPERS ------------------
 
 function M.get_jumpers()
-	assert(M.dialog_data.jumpers, "DefArc: No jumpers in the project")
-	return M.dialog_data.jumpers
+	local jumpers = M.dialogue_data and M.dialogue_data.jumpers
+	if not jumpers then
+		verbose_print("No jumpers in the project")
+	end
+	return jumpers
 end
 
 function M.get_jumpers_elements_id()
 	local jumpers = {}
-	for id,jumper in pairs(M.get_jumpers()) do
+	local data = M.get_jumpers()
+	for id,jumper in pairs(data) do
 		jumpers[id] = jumper.elementId
 	end
 	return jumpers
 end
 
 function M.get_jumper_by_id(id)
-	return M.get_jumpers()[id]
+	local jumpers = M.get_jumpers()
+	return jumpers and jumpers[id]
 end
 
 function M.get_jumper_by_element_id(element_id)
-	for id,jumper in pairs(M.dialog_data.jumpers) do
+	local data = M.dialogue_data.jumpers
+	for _,jumper in pairs(data) do
 		if jumper.elementId == element_id then
 			return jumper
 		end
@@ -551,22 +669,28 @@ function M.select_jumper(jumper)
 end
 
 function M.get_jumper_element_id(jumper)
-	return M.get_jumper(jumper).elementId
+	local jumper = M.get_jumper(jumper)
+	return jumper and jumper.elementId or (M.jumper_selected and M.jumper_selected.elementId)
 end
 
 ----------- GLOBAL BRANCHES -------------
 
 function M.get_branches()
-	assert(M.dialog_data.branches, "DefArc: No branches in the project")
-	return M.dialog_data.branches
+	local branches = M.dialogue_data and M.dialogue_data.branches
+	if not branches then
+		verbose_print("No branches in the project")
+	end
+	return branches
 end
 
 function M.get_branch_by_id(id)
-	return M.get_branches()[id]
+	local branches = M.get_branches()
+	return branches and branches[id]
 end
 
 function M.get_branch(id)
-	return id and M.get_branches()[id] or M.branch_selected
+	local branches = M.get_branches()
+	return (id and branches) and branches[id] or M.branch_selected
 end
 
 function M.select_branch_by_id(id)
@@ -578,23 +702,28 @@ function M.select_branch(id)
 end
 
 function M.get_branch_theme(id)
-	return M.get_branch(id).theme
+	local branch = M.get_branch(id)
+	return branch and branch.theme
 end
 
 function M.get_branch_conditions(id)
-	return M.get_branch(id).conditions
+	local branch = M.get_branch(id)
+	return branch and branch.conditions
 end
 
 function M.get_branch_if_condition(id)
-	return M.get_branch_conditions(id).ifCondition
+	local branch_conditions = M.get_branch_conditions(id)
+	return branch_conditions and branch_conditions.ifCondition
 end
 
 function M.get_branch_elseif_conditions(id)
-	return M.get_branch_conditions(id).elseIfConditions
+	local branch_conditions = M.get_branch_conditions(id)
+	return branch_conditions and branch_conditions.elseIfConditions
 end
 
 function M.get_branch_else_condition(id)
-	return M.get_branch_conditions(id).elseCondition
+	local branch_conditions = M.get_branch_conditions(id)
+	return branch_conditions and branch_conditions.elseCondition
 end
 
 ----------- STRING HELPER FUNCTIONS -------------
@@ -602,22 +731,26 @@ end
 function M.split(inputstr, sep, alt_sep)
 	local t = {}
 	local i = 1
-	for str in string_gmatch(inputstr, "([^"..sep.."]+)") do
-		if alt_sep then
-			for alt_str in string_gmatch(str, "([^"..alt_sep.."]+)") do
-				t[i] = alt_str
+	if inputstr and sep then
+		for str in string_gmatch(inputstr, "([^"..sep.."]+)") do
+			if alt_sep then
+				for alt_str in string_gmatch(str, "([^"..alt_sep.."]+)") do
+					t[i] = alt_str
+					i = i + 1
+				end
+			else
+				t[i] = str
 				i = i + 1
 			end
-		else
-			t[i] = str
-			i = i + 1
 		end
 	end
 	return t
 end
 
 function M.substr_start_end(inputstr, start_offset, end_offset)
-	return string_sub(inputstr, 1+start_offset, string_len(inputstr)-end_offset)
+	start_offset = start_offset or 0
+	end_offset = end_offset or 0
+	return inputstr and string_sub(inputstr, 1 + start_offset, string_len(inputstr)-end_offset) or nil
 end
 
 function M.strip_p_tags(word)
@@ -656,41 +789,60 @@ end
 ----------- GLOBAL CONDITIONS -------------
 
 function M.get_conditions()
-	assert(M.dialog_data.conditions, "DefArc: No conditions in the project")
-	return M.dialog_data.conditions
+	local conditions = M.dialogue_data and M.dialogue_data.conditions
+	if not conditions then
+		verbose_print("No conditions in the project")
+	end
+	return conditions
 end
 
 function M.get_condition_by_id(condition_id)
-	return M.get_conditions()[condition_id]
+	local conditions = M.get_conditions()
+	return conditions and conditions[condition_id]
 end
 
-function M.get_condition(condition_id)
-	return condition_id and M.get_conditions()[condition_id] or M.condition_selected
+function M.get_condition(condition)
+	if type(condition) == "string" then
+		return condition and M.get_condition_by_id(condition) or M.condition_selected
+	else
+		return condition or M.condition_selected
+	end
 end
 
 function M.select_condition_by_id(condition_id)
 	M.condition_selected = M.get_condition_by_id(condition_id)
 end
 
-function M.select_condition(condition_id)
-	M.condition_selected = M.get_condition_by_id(condition_id)
+function M.select_condition(condition)
+	M.condition_selected = M.get_condition(condition)
 end
 
 function M.get_condition_output(condition_id)
-	return M.get_condition(condition_id).output
+	local condition = M.get_condition(condition_id)
+	return condition and condition.output
 end
 
 function M.get_condition_script(condition_id)
-	return M.get_condition(condition_id).script
+	local condition = M.get_condition(condition_id)
+	return condition and condition.script
 end
 
 function M.parse_variable_value(variable)
-	local saved_variable = M.load_variable(variable.name)
-	if not saved_variable then
-		M.save_variable(variable)
-		saved_variable = M.load_variable(variable.name)
+	if variable then
+		local variable_name = variable.name
+		if variable_name then
+			local saved_variable = M.load_variable(variable_name)
+			if not saved_variable then
+				M.save_variable(variable)
+				saved_variable = M.load_variable(variable_name)
+			end
+			return tostring(saved_variable)
+		end
+		verbose_print("Could not parse variable. Variable has no name.")
+		return false
 	end
-	return tostring(saved_variable)
+	verbose_print("Could not parse variable. No variable given.")
+	return false
 end
 
 local function divide_code_condition_into_elements(condition)
@@ -810,37 +962,47 @@ end
 ----------- GLOBAL STARTING ELEMENT -------------
 
 function M.get_starting_element_id()
-	return M.dialog_data.startingElement
+	return M.dialogue_data and M.dialogue_data.startingElement
 end
 
 function M.get_starting_element()
-	return M.dialog_data.elements[M.dialog_data.startingElement]
+	local elements = M.dialogue_data and M.dialogue_data.elements
+	return elements and elements[M.get_starting_element_id()]
 end
 
 ----------- ELEMENTS -------------
 
 function M.get_elements()
-	assert(M.dialog_data.elements, "DefArc: No elements in the project")
-	return M.dialog_data.elements
+	local elements = M.dialogue_data and M.dialogue_data.elements
+	if not elements then
+		verbose_print("No elements in the project")
+	end
+	return elements
 end
 
 function M.get_elements_titles()
-	assert(M.dialog_data.elements, "DefArc: No elements in the project")
 	local elements = {}
-	for id,element in pairs(M.get_elements()) do
-		elements[id] = M.substr_start_end(element.title, 3, 4) -- cut off <p> and </p>
+	local data = M.get_elements()
+	if data then
+		for id,element in pairs(data) do
+			elements[id] = M.substr_start_end(element.title, 3, 4) -- cut off <p> and </p>
+		end
 	end
 	return elements
 end
 
 function M.get_element_by_id(id)
-	return M.get_elements()[id]
+	local elements = M.get_elements()
+	return elements and elements[id]
 end
 
 function M.get_element_by_title(title)
-	for id,element in pairs(M.dialog_data.elements) do
-		if trim_p_tags(element.title) == title then
-			return element
+	local data = M.get_elements()
+	if data then
+		for _,element in pairs(data) do
+			if element.title and (trim_p_tags(element.title) == title) then
+				return element
+			end
 		end
 	end
 	return nil
@@ -849,11 +1011,11 @@ end
 function M.get_element(element)
 	if element then
 		if type(element) == "string" then
-			local element_by_name = M.get_element_by_title(element)
-			if element_by_name then
-				return element_by_name
+			local element_by_id = M.get_element_by_id(element)
+			if element_by_id then
+				return element_by_id
 			else
-				return M.get_element_by_id(element)
+				return M.get_element_by_title(element)
 			end
 		else
 			return element
@@ -889,7 +1051,7 @@ end
 
 function M.get_element_content(element)
 	element = M.get_element(element)
-	return trim_p_tags(element and element.content) -- cut off <p> and </p>
+	return trim_p_tags(element and element.content or "") -- cut off <p> and </p>
 end
 
 function M.get_element_outputs(element)
@@ -915,13 +1077,17 @@ end
 ----------- CONNECTIONS -------------
 
 function M.get_connections()
-	assert(M.dialog_data.connections, "DefArc: No connections in the project")
-	return M.dialog_data.connections
+	local connections = M.dialogue_data and M.dialogue_data.connections
+	if not connections then
+		verbose_print("No connections in the project")
+	end
+	return connections
 end
 
 function M.get_connections_for_source_id(source_id)
 	local connections = {}
-	for id,connection in pairs(M.get_connections()) do
+	local data = M.get_connections()
+	for id,connection in pairs(data) do
 		if connection.sourceid == source_id then
 			connections[id] = connection
 		end
@@ -930,11 +1096,13 @@ function M.get_connections_for_source_id(source_id)
 end
 
 function M.get_connection_by_id(connection_id)
-	return M.get_connections()[connection_id]
+	local connections = M.get_connections()
+	return connections and connections[connection_id]
 end
 
 function M.get_connection(connection_id)
-	return connection_id and M.get_connections()[connection_id] or M.connection_selected
+	local connections = M.get_connections()
+	return connection_id and (connections and connections[connection_id]) or M.connection_selected
 end
 
 function M.select_connection_by_id(connection_id)
@@ -949,37 +1117,37 @@ end
 
 function M.get_connection_type(connection_id)
 	local connection = M.get_connection(connection_id)
-	return connection.type
+	return connection and connection.type
 end
 
 function M.get_connection_label(connection_id)
 	local connection = M.get_connection(connection_id)
-	return connection.label and trim_p_tags(connection.label) or ""-- cut off <p> and </p>
+	return connection and connection.label and trim_p_tags(connection.label) or ""-- cut off <p> and </p>
 end
 
 function M.get_connection_theme(connection_id)
 	local connection = M.get_connection(connection_id)
-	return connection.theme
+	return connection and connection.theme
 end
 
 function M.get_connection_source_id(connection_id)
 	local connection = M.get_connection(connection_id)
-	return connection.sourceid
+	return connection and connection.sourceid
 end
 
 function M.get_connection_target_id(connection_id)
 	local connection = M.get_connection(connection_id)
-	return connection.targetid
+	return connection and connection.targetid
 end
 
 function M.get_connection_source_type(connection_id)
 	local connection = M.get_connection(connection_id)
-	return connection.sourceType
+	return connection and connection.sourceType
 end
 
 function M.get_connection_target_type(connection_id)
 	local connection = M.get_connection(connection_id)
-	return connection.targetType
+	return connection and connection.targetType
 end
 
 ----------- CODE BITS -------------
@@ -1031,7 +1199,8 @@ local function arcscript_if_parser(splitted, start_at)
 
 	-- load the value of the variable and apply negation flag back to he result
 	local result = M.load_variable(statement_var)
-	if negation then 
+	if result == nil then result = false end
+	if negation then
 		result = not result
 	end
 
@@ -1097,7 +1266,6 @@ end
 
 local function get_passing_branching_option(connection_id)
 	local branch_id = M.get_connection_target_id(connection_id)
-	local conditions = M.get_branch_conditions(branch_id)
 
 	-- IF
 	local checking_condition = M.get_branch_if_condition(branch_id)

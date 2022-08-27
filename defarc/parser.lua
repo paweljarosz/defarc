@@ -27,22 +27,18 @@ M.default_tag_parser["special-br-start"] = 		function() return "\n" end
 M.default_tag_parser["span class=\"mention"] = 	function(text, defarc)
 	local c_id_start = string_find(text, "data%-id=")	-- escape - with %, because - is special
 	local c_id_end = string_find(text, "data%-type=\"component\"")
-	pprint("Mention", text, c_id_start, c_id_end)
 	if c_id_start and c_id_end then
 		c_id_start = c_id_start + 9
 		c_id_end = c_id_end - 3
 		local component_id = string_sub(text, c_id_start, c_id_end)
-		pprint("CI", component_id)
 		local c_asset = defarc.get_component_assets(component_id)
 		local c_asset_id = c_asset and c_asset.cover and c_asset.cover.id
 		local asset = defarc.get_asset_by_id(c_asset_id)
 
 		if asset and asset.type and asset.type == "template-image" and asset.name then
 			local splitted = defarc.split(asset.name, ".")
-			pprint(defarc.displaying_image_component_cb)
 			defarc.displaying_image_component_cb(splitted[1])
 		end
-		pprint("Get", c_asset, asset)
 	end
 	return "@"
 end

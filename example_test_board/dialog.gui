@@ -1,4 +1,4 @@
-script: "/example_simple/test_defork.gui_script"
+script: "/example_test_board/test_board.gui_script"
 fonts {
   name: "system_font"
   font: "/builtins/fonts/system_font.font"
@@ -71,6 +71,8 @@ nodes {
   text_leading: 1.0
   text_tracking: 0.0
   custom_type: 0
+  enabled: true
+  visible: true
 }
 nodes {
   position {
@@ -134,6 +136,8 @@ nodes {
   text_leading: 1.0
   text_tracking: 0.0
   custom_type: 0
+  enabled: true
+  visible: true
 }
 nodes {
   position {
@@ -197,6 +201,8 @@ nodes {
   text_leading: 1.0
   text_tracking: 0.0
   custom_type: 0
+  enabled: true
+  visible: true
 }
 nodes {
   position {
@@ -260,6 +266,8 @@ nodes {
   text_leading: 1.0
   text_tracking: 0.0
   custom_type: 0
+  enabled: true
+  visible: true
 }
 material: "/builtins/materials/gui.material"
 adjust_reference: ADJUST_REFERENCE_PARENT

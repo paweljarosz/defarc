@@ -2,9 +2,12 @@
 
 local M = {}
 
+local require, assert, print, ipairs, pcall, tostring = require, assert, print, ipairs, pcall, tostring
 local defarc = require "defarc.defarc"
 
-local test_board = "/dialogs/test_board.json"
+local test_board = "/dialogs/test_board/test_board.json"
+
+defarc.verbose = true
 
 local tests = {}
 tests[1]  = { name = "001 Loading-----------------", result = function() assert(defarc.load(test_board)) end}
@@ -22,7 +25,7 @@ tests[11] = { name = "011 Set Board By Name-------", result = function() defarc.
 tests[12] = { name = "012 Set Board---------------", result = function() defarc.select_board("Test Board") assert(defarc.board_selected) end}
 tests[13] = { name = "013 Get Board Name----------", result = function() assert(defarc.get_board() and defarc.get_board_name() and defarc.get_board_name() == "Test Board") end}
 
-tests[14] = { name = "014 Get Notes---------------", result = function() assert(defarc.get_notes()) end}
+tests[14] = { name = "014 Get Notes---------------", result = function() assert(defarc.get_board_notes()) end}
 tests[15] = { name = "015 Get Board Jumpers-------", result = function() assert(defarc.get_board_jumpers()) end}
 tests[16] = { name = "016 Get Board Branches------", result = function() assert(defarc.get_board_branches()) end}
 tests[17] = { name = "017 Get Board Elements------", result = function() assert(defarc.get_board_elements()) end}
@@ -110,21 +113,25 @@ tests[84] = { name = "084 Get Condition ----------", result = function() assert(
 tests[85] = { name = "085 Get Condition Output----", result = function() assert(defarc.get_condition_output() == "ba5339d7-e9e9-4007-895f-1970024fee8b") end}
 tests[86] = { name = "086 Get Condition Script----", result = function() assert(defarc.get_condition_script() == "variable_Bool == true") end}
 
+-- Save variables (load from json):
 tests[87] = { name = "087 Save Variable Integer---", result = function() assert(defarc.save_variable("variable_Integer")) end}
 tests[88] = { name = "088 Save Variable Float-----", result = function() assert(defarc.save_variable("variable_Float")) end}
 tests[89] = { name = "089 Save Variable String----", result = function() assert(defarc.save_variable("variable_String")) end}
 tests[90] = { name = "090 Save Variable Bool------", result = function() assert(defarc.save_variable("variable_Bool")) end}
 
+-- Default values, read from json:
 tests[91] = { name = "091 Load Variable Integer---", result = function() assert(defarc.load_variable("variable_Integer") == 0) end}
 tests[92] = { name = "092 Load Variable Float-----", result = function() assert(defarc.load_variable("variable_Float") == 0.0) end}
 tests[93] = { name = "093 Load Variable String----", result = function() assert(defarc.load_variable("variable_String") == "test") end}
 tests[94] = { name = "094 Load Variable Bool------", result = function() assert(defarc.load_variable("variable_Bool") == false) end}
 
+-- Set and save new values
 tests[95] = { name = "095 Save New Var Integer----", result = function() assert(defarc.save_variable("variable_Integer", 1)) end}
 tests[96] = { name = "096 Save New Var Float------", result = function() assert(defarc.save_variable("variable_Float", 1.0)) end}
 tests[97] = { name = "097 Save New Var String-----", result = function() assert(defarc.save_variable("variable_String", "new_test")) end}
 tests[98] = { name = "098 Save New Var Bool-------", result = function() assert(defarc.save_variable("variable_Bool", true)) end}
 
+-- Check if values are saved
 tests[99] = { name = "099 Load New Var Integer----", result = function() return defarc.load_variable("variable_Integer") == 1 end}
 tests[100] = { name = "100 Load New Var Float------", result = function() assert(defarc.load_variable("variable_Float") == 1.0) end}
 tests[101] = { name = "101 Load New Var String-----", result = function() assert(defarc.load_variable("variable_String") == "new_test") end}
@@ -200,8 +207,6 @@ function M.run()
 		print("DefArc Test:", test.name..":", (test_result) and "OK" or ("FAILED: " .. (tostring(error_text)) ) )
 	end
 	print("DefArc Test:", "Summary:", "| OK: ", OK, " | FAILED: ", FAILED, " | RUN: ", OK+FAILED, " | TOTAL: :", #tests, " |")
-
-	--print("V", loadstring("return true"))
 end
 
 return M

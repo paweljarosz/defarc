@@ -20,8 +20,9 @@ function init(self)
 	msg.post(".", "acquire_input_focus")
 	defarc_test.run()								-- unit and functional testing, not needed for project
 
-	defarc.load("/dialogs/test_board.json")			-- loading Arcweave exported JSON from custom resources
-	defarc.select_element("Example welcome")		-- selecting element by its title from Arcweave element
+	defarc.load("/dialogs/test_board/test_board.json")	-- loading Arcweave exported JSON from custom resources
+	local start_id = defarc.get_starting_element_id()	-- get starting element id
+	defarc.select_element_by_id(start_id)				-- select element by its id
 
 	show_current_text_and_options()					-- display text and options from selected element
 end
@@ -39,7 +40,8 @@ function on_input(self, action_id, action)
 				defarc.select_element(options[i].target_id)				-- select next element
 
 				if defarc.get_element_title() == "Exit" then			-- if one of elements have title "Exit"
-					defarc.select_element("Example welcome")			-- we will just start over (or we can quit the conversation here)
+					local start_id = defarc.get_starting_element_id()	-- we will just start over (or we can quit the conversation here)
+					defarc.select_element_by_id(start_id)
 				end
 
 				show_current_text_and_options()							-- display next text and options

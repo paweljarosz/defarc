@@ -5,7 +5,7 @@ fonts {
 }
 fonts {
   name: "open_sans"
-  font: "/example_arcweave/open-sans/open_sans.font"
+  font: "/fonts/open-sans/open_sans.font"
 }
 textures {
   name: "arcweave"
