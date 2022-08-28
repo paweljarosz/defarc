@@ -18,13 +18,13 @@ end
 
 function init(self)
 	msg.post(".", "acquire_input_focus")
-	defarc_test.run()								-- unit and functional testing, not needed for project
+	defarc_test.run()									-- unit and functional testing, not needed for project
 
 	defarc.load("/dialogs/test_board/test_board.json")	-- loading Arcweave exported JSON from custom resources
 	local start_id = defarc.get_starting_element_id()	-- get starting element id
 	defarc.select_element_by_id(start_id)				-- select element by its id
 
-	show_current_text_and_options()					-- display text and options from selected element
+	show_current_text_and_options()						-- display text and options from selected element
 end
 
 function on_input(self, action_id, action)

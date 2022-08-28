@@ -28,7 +28,7 @@ local function verbose_print(text, arg)
 end
 
 function M.load(resource)
-	if not resource then
+	if resource then
 		local data = sys.load_resource(resource)
 		M.dialogue_data = json.decode(data)
 		if not M.dialogue_data then
@@ -1259,7 +1259,8 @@ end
 ----------- CONVERSATION FLOW -------------
 
 function M.get_text(element)
-	local content = M.get_element(element).content
+	local element = M.get_element(element)
+	local content = element and element.content
 	local result = parser.parse_element_content(content, M)
 	return result
 end
@@ -1289,7 +1290,8 @@ end
 
 function M.get_options_table(element)
 	local options = {}
-	for i,output_connection in pairs(M.get_element_outputs(element)) do
+	local outputs = M.get_element_outputs(element)
+	for i,output_connection in pairs(outputs) do
 		local target_id = M.get_connection_target_id(output_connection)
 		if M.get_connection_target_type(output_connection) == "branches" then
 			output_connection = get_passing_branching_option(output_connection)
