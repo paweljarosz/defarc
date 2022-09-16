@@ -1,4 +1,4 @@
-font: "/fonts/open-sans/OpenSans-Regular.ttf"
+font: "/examples/fonts/open-sans/OpenSans-Regular.ttf"
 material: "/builtins/fonts/font-df.material"
 size: 17
 antialias: 1

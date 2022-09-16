@@ -1,15 +1,15 @@
-script: "/example_arcweave/test_arcweave.gui_script"
+script: "/examples/example_arcweave/test_arcweave.gui_script"
 fonts {
   name: "system_font"
   font: "/builtins/fonts/system_font.font"
 }
 fonts {
   name: "open_sans"
-  font: "/fonts/open-sans/open_sans.font"
+  font: "/examples/fonts/open-sans/open_sans.font"
 }
 textures {
   name: "arcweave"
-  texture: "/example_arcweave/arcweave.atlas"
+  texture: "/examples/example_arcweave/arcweave.atlas"
 }
 background_color {
   x: 0.0

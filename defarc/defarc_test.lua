@@ -5,7 +5,7 @@ local M = {}
 local require, assert, print, ipairs, pcall, tostring = require, assert, print, ipairs, pcall, tostring
 local defarc = require "defarc.defarc"
 
-local test_board = "/dialogs/test_board/test_board.json"
+local test_board = "/examples/dialogs/test_board/test_board.json"
 
 defarc.verbose = true
 

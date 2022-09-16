@@ -30,7 +30,7 @@ end
 function init(self)
 	msg.post(".", "acquire_input_focus")
 
-	defarc.load("/dialogs/arcweave_example/project_settings.json")		-- loading Arcweave exported JSON from custom resources
+	defarc.load("/examples/dialogs/arcweave_example/project_settings.json")	-- loading Arcweave exported JSON from custom resources
 	defarc.select_element(defarc.get_starting_element())				-- select starting element
 	
 	defarc.displaying_image_component_cb = function(image_name)			-- setup a callback function that will display component's image
